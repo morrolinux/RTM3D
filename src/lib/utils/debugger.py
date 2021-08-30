@@ -381,8 +381,11 @@ class Debugger(object):
           self.plt.imshow(v)
       self.plt.show()
 
-  def save_img(self, imgId='default', path='./cache/debug/'):
-    cv2.imwrite(path + '{}.png'.format(imgId), self.imgs[imgId])
+  def save_img(self, imgId='default', path='./cache/debug/', seq=0):
+    cv2.imwrite(path + '{}{}.png'.format(imgId, seq), self.imgs[imgId])
+
+  def save_bev(self, imgId='default', path='./cache/debug/', seq=0):
+    cv2.imwrite(path + '{}{}.png'.format('car_bev', seq), self.BEV[imgId])
     
   def save_all_imgs(self, path='./cache/debug/', prefix='', genID=False):
     if genID:

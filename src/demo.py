@@ -10,9 +10,12 @@ from opts import opts
 import shutil
 image_ext = ['jpg', 'jpeg', 'png', 'webp']
 video_ext = ['mp4', 'mov', 'avi', 'mkv']
-time_stats = ['net', 'dec']
+time_stats = ['tot', 'load', 'pre','net', 'dec', 'post', 'merge']
 
 def demo(opt):
+    f = open("rtm3d_profiling.csv", "w")
+    f.write("tot;load;pre;net;dec;post;merge\n")
+
     os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
     opt.debug = max(opt.debug, 1)
     opt.faster=False
@@ -34,18 +37,26 @@ def demo(opt):
               lines = f.readlines()
           image_names=[os.path.join(opt.data_dir+'/kitti/image/',img.replace('\n','')+'.png') for img in lines]
       else:
-        image_names = [opt.demo]
+          image_names = [opt.demo]
     time_tol = 0
     num = 0
-    for (image_name) in image_names:
+    # for (image_name) in image_names:
+    for image_name in image_names:
       num+=1
       ret = detector.run(image_name)
       time_str = ''
+      time_csv = ''
       for stat in time_stats:
           time_tol=time_tol+ret[stat]
           time_str = time_str + '{} {:.3f}s |'.format(stat, ret[stat])
+          time_csv = time_csv + '{:.6f}'.format(ret[stat]) + ';'
+
+      time_csv = time_csv[:-1].replace(".", ",") + '\n'
+
+      f.write(time_csv)
+
       time_str=time_str+'{} {:.3f}s |'.format('tol', time_tol/num)
-      #print(time_str)
+      print(time_str)
 if __name__ == '__main__':
     opt = opts().init()
     demo(opt)

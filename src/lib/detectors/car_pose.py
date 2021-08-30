@@ -7,6 +7,7 @@ import numpy as np
 from progress.bar import Bar
 import time
 import torch
+import time
 
 try:
     from external.nms import soft_nms_39
@@ -28,11 +29,16 @@ class CarPoseDetector(BaseDetector):
     def __init__(self, opt):
         super(CarPoseDetector, self).__init__(opt)
         self.flip_idx = opt.flip_idx
+        self.seq = 0
+
+        # self.f = open("tempi.csv", "w")
 
     def process(self, images,meta, return_time=False):
         with torch.no_grad():
             torch.cuda.synchronize()
+            start_t = time.time()
             output = self.model(images)[-1]
+            # self.f.write(str(time.time() - start_t).replace(".", ",") + "\n")
             output['hm'] = output['hm'].sigmoid_()
             if self.opt.hm_hp and not self.opt.mse_loss:
                 output['hm_hp'] = output['hm_hp'].sigmoid_()
@@ -110,5 +116,7 @@ class CarPoseDetector(BaseDetector):
                 debugger.add_3d_detection(bbox, calib, img_id='car_pose')
                 debugger.save_kitti_format(bbox,self.image_path,self.opt,img_id='car_pose',is_faster=self.opt.faster)
         if self.opt.vis:
-            debugger.show_all_imgs(pause=self.pause)
-
+            debugger.show_all_imgs(pause=False)
+            debugger.save_img(imgId='car_pose', path='/home/morro/Pictures/RTM3D_OUT/pose/', seq=self.seq)
+            debugger.save_bev(imgId='car_pose', path='/home/morro/Pictures/RTM3D_OUT/bev/', seq=self.seq)
+            self.seq += 1
