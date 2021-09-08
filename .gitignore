@@ -1,0 +1,7 @@
+kitti_format/exp/
+src/lib/__pycache__
+*.pyc
+src/lib/models
+src/__pycache__/*.pyc
+src/lib/__pycache__/*.pyc
+src/lib/models/
