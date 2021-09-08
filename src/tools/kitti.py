@@ -114,6 +114,11 @@ for SPLIT in SPLITS:
             else:
                 calib = read_clib(calib_path)
 
+            c = open(calib_path)
+            r_txt = c.readlines()[4].strip().split()[1:]
+            calib_R = np.array(r_txt, dtype=np.float32).reshape(3,3)
+            c.close()
+
             image_info = {'file_name': '{}.png'.format(line),
                           'id': int(image_id),
                           'calib': calib.tolist()}
@@ -142,7 +147,7 @@ for SPLIT in SPLITS:
                 if tmp[0] in det_cats:
                     image = cv2.imread(os.path.join(image_set_path, image_info['file_name']))
                     bbox = [float(tmp[4]), float(tmp[5]), float(tmp[6]), float(tmp[7])]
-                    box_3d = compute_box_3d(dim, location, rotation_y)
+                    box_3d = compute_box_3d(dim, location, rotation_y, calib_R)
                     box_2d_as_point,vis_num,pts_center = project_to_image(box_3d, calib,image.shape)
                     bbb_img = draw_box_3d(bbb_img, box_2d_as_point[:, :2].astype(np.float32))
                     box_2d_as_point=np.reshape(box_2d_as_point,(1,27))

@@ -5,18 +5,54 @@ from os import DirEntry
 
 import numpy as np
 import cv2
+import math
 
-def compute_box_3d(dim, location, rotation_y):
+# Calculates Rotation Matrix given euler angles.
+def eulerAnglesToRotationMatrix(theta) :
+
+    R_x = np.array([[1,         0,                  0                   ],
+                    [0,         math.cos(theta[0]), -math.sin(theta[0]) ],
+                    [0,         math.sin(theta[0]), math.cos(theta[0])  ]
+                    ])
+
+    R_y = np.array([[math.cos(theta[1]),    0,      math.sin(theta[1])  ],
+                    [0,                     1,      0                   ],
+                    [-math.sin(theta[1]),   0,      math.cos(theta[1])  ]
+                    ])
+
+    R_z = np.array([[math.cos(theta[2]),    -math.sin(theta[2]),    0],
+                    [math.sin(theta[2]),    math.cos(theta[2]),     0],
+                    [0,                     0,                      1]
+                    ])
+
+    R = np.dot(R_z, np.dot( R_y, R_x ))
+
+    return R
+
+  
+def rotationMatrixToEulerAngles(R) :
+    yaw=math.atan2(R[1,0], R[0,0])
+    pitch=math.atan2(-R[2,0], math.sqrt(R[2,1]**2+R[2,2]**2))
+    roll=math.atan2(R[2,1], R[2,2])
+    return pitch, yaw, roll
+
+
+def compute_box_3d(dim, location, rotation_y, R=None):
   print("compute_box_3d")
   # dim: 3
   # location: 3
   # rotation_y: 1
   # return: 8 x 3
   c, s = np.cos(rotation_y), np.sin(rotation_y)
-  R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]], dtype=np.float32)
-  with open("/home/morro/RTM3D/kitti_format/data/kitti/calib/000001.txt") as f:
-    r_txt = f.readlines()[4].strip().split()[1:]
-    R = np.array(r_txt, dtype=np.float32).reshape(3,3)
+
+  if R is None:
+    R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]], dtype=np.float32)
+  else:
+    # Apply object rotation_y, sum it to the camera angle rotation
+    pitch, yaw, roll = rotationMatrixToEulerAngles(R)
+    R1 = eulerAnglesToRotationMatrix((0, rotation_y + pitch, 0))
+    R = np.dot(R, R1)
+
   l, w, h = dim[2], dim[1], dim[0]
   x_corners = [l/2, l/2, -l/2, -l/2, l/2, l/2, -l/2, -l/2,0]
   y_corners = [0,0,0,0,-h,-h,-h,-h,-h/2]
