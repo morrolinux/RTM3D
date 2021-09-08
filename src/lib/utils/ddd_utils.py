@@ -1,28 +1,34 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from os import DirEntry
 
 import numpy as np
 import cv2
 
 def compute_box_3d(dim, location, rotation_y):
+  print("compute_box_3d")
   # dim: 3
   # location: 3
   # rotation_y: 1
   # return: 8 x 3
   c, s = np.cos(rotation_y), np.sin(rotation_y)
   R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]], dtype=np.float32)
+  with open("/home/morro/RTM3D/kitti_format/data/kitti/calib/000001.txt") as f:
+    r_txt = f.readlines()[4].strip().split()[1:]
+    R = np.array(r_txt, dtype=np.float32).reshape(3,3)
   l, w, h = dim[2], dim[1], dim[0]
   x_corners = [l/2, l/2, -l/2, -l/2, l/2, l/2, -l/2, -l/2,0]
   y_corners = [0,0,0,0,-h,-h,-h,-h,-h/2]
   z_corners = [w/2, -w/2, -w/2, w/2, w/2, -w/2, -w/2, w/2,0]
 
   corners = np.array([x_corners, y_corners, z_corners], dtype=np.float32)
-  corners_3d = np.dot(R, corners) 
+  corners_3d = np.dot(R, corners)
   corners_3d = corners_3d + np.array(location, dtype=np.float32).reshape(3, 1)
   return corners_3d.transpose(1, 0)
 
 def project_to_image(pts_3d, P,img_shape):
+  print("project_to_image")
   # pts_3d: n x 3
   # P: 3 x 4
   # return: n x 2
@@ -49,6 +55,7 @@ def project_to_image(pts_3d, P,img_shape):
   # import pdb; pdb.set_trace()
   return pts_2d,vis_num,pts_center
 def project_to_image3(pts_3d, P,img_shape):
+  print("project_to_image3")
   # pts_3d: n x 3
   # P: 3 x 4
   # return: n x 2
@@ -101,6 +108,7 @@ def draw_box_3d(image, corners, c=(0, 0, 255)):
   for ind_f in range(3, -1, -1):
     f = face_idx[ind_f]
     for j in range(4):
+      print(j, (j+1)%4, (corners[f[j], 0], corners[f[j], 1]), (corners[f[(j+1)%4], 0], corners[f[(j+1)%4], 1]))
       cv2.line(image, (corners[f[j], 0], corners[f[j], 1]),
                (corners[f[(j+1)%4], 0], corners[f[(j+1)%4], 1]), c, 2, lineType=cv2.LINE_AA)
     if ind_f == 0:

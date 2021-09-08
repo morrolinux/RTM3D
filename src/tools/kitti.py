@@ -17,7 +17,7 @@ import os
 import math
 SPLITS = ['train1']
 import _init_paths
-from utils.ddd_utils import compute_box_3d, project_to_image, project_to_image3,alpha2rot_y
+from utils.ddd_utils import compute_box_3d, project_to_image, project_to_image3,alpha2rot_y, draw_box_3d
 from utils.ddd_utils import draw_box_3d, unproject_2d_to_3d
 
 '''
@@ -121,10 +121,12 @@ for SPLIT in SPLITS:
             if split == 'test':
                 continue
             ann_path = ann_dir + '{}.txt'.format(line)
+            bbb_img = cv2.imread(os.path.join(image_set_path, image_info['file_name']))
             # if split == 'val':
             #   os.system('cp {} {}/'.format(ann_path, VAL_PATH))
             anns = open(ann_path, 'r')
             for ann_ind, txt in enumerate(anns):
+                print("[{}]".format(ann_ind))
                 tmp = txt[:-1].split(' ')
                 cat_id = cat_ids[tmp[0]]
                 truncated = int(float(tmp[1]))
@@ -142,11 +144,11 @@ for SPLIT in SPLITS:
                     bbox = [float(tmp[4]), float(tmp[5]), float(tmp[6]), float(tmp[7])]
                     box_3d = compute_box_3d(dim, location, rotation_y)
                     box_2d_as_point,vis_num,pts_center = project_to_image(box_3d, calib,image.shape)
+                    bbb_img = draw_box_3d(bbb_img, box_2d_as_point[:, :2].astype(np.float32))
                     box_2d_as_point=np.reshape(box_2d_as_point,(1,27))
                     #box_2d_as_point=box_2d_as_point.astype(np.int)
                     box_2d_as_point=box_2d_as_point.tolist()[0]
                     num_keypoints=vis_num
-
                     off_set=(calib[0,3]-calib0[0,3])/calib[0,0]
                     location[0] += off_set###################################################confuse
                     alpha = rotation_y - math.atan2(pts_center[0, 0] - calib[0, 2], calib[0, 0])
@@ -166,6 +168,10 @@ for SPLIT in SPLITS:
                            'calib':calib_list,
                             }
                     ret['annotations'].append(ann)
+                    print(image_id)
+
+            cv2.imshow('image', bbb_img)
+            cv2.waitKey(0)
         print("# images: ", len(ret['images']))
         print("# annotations: ", len(ret['annotations']))
         # import pdb; pdb.set_trace()
