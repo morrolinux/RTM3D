@@ -16,6 +16,8 @@ mkdir annotations
 for i in {000000..000010}
 do 
     cp $DS/calib/$i.txt calib/
+    cp $DS/calib/$i.i calib/
+    cp $DS/calib/$i.e calib/
     cp $DS/image_2/$i.png image/
     cp $DS/label_2/$i.txt label/
     cp $DS/planes/$i.txt planes/
