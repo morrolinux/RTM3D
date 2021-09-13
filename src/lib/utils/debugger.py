@@ -459,8 +459,7 @@ class Debugger(object):
             self.add_coco_bbox(bbox, dets[i, -1], dets[i, 2], img_id=img_id)
 
 
-  def add_3d_detection(self, results, calib, img_id='default',  show_txt=False):
-
+  def add_3d_detection(self, results, calib, img_id='default', show_txt=False, calib_r=None):
       dim = results[32:35]
       pos = results[36:39]
       ori = results[35]
@@ -470,7 +469,7 @@ class Debugger(object):
           # dim = dim / self.dim_scale
       #cl = self.names[cat]
       cl = (self.colors[cat, 0, 0]).tolist()
-      box_3d = compute_box_3d(dim, pos, ori)
+      box_3d = compute_box_3d(dim, pos, ori, R=calib_r)
       box_2d = self.project_to_image(box_3d, calib)
       self.imgs[img_id] = draw_box_3d(self.imgs[img_id], box_2d, cl)
 

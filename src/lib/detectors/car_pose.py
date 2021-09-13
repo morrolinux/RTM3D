@@ -106,14 +106,14 @@ class CarPoseDetector(BaseDetector):
                 output['hm_hp'][0].detach().cpu().numpy())
             debugger.add_blend_img(img, pred, 'pred_hmhp')
 
-    def show_results(self, debugger, image, results, calib):
+    def show_results(self, debugger, image, results, calib, calib_r=None):
         debugger.add_img(image, img_id='car_pose')
         for bbox in results[1]:
             if bbox[4] > self.opt.vis_thresh:
                 debugger.add_coco_bbox(bbox[:4], bbox[40], bbox[4], img_id='car_pose')
                 debugger.add_kitti_hp(bbox[5:23], img_id='car_pose')
                 debugger.add_bev(bbox, img_id='car_pose',is_faster=self.opt.faster)
-                debugger.add_3d_detection(bbox, calib, img_id='car_pose')
+                debugger.add_3d_detection(bbox, calib, img_id='car_pose', calib_r=calib_r)
                 debugger.save_kitti_format(bbox,self.image_path,self.opt,img_id='car_pose',is_faster=self.opt.faster)
         if self.opt.vis:
             debugger.show_all_imgs(pause=False)

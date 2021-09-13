@@ -52,6 +52,7 @@ def compute_box_3d(dim, location, rotation_y, R=None):
     pitch, yaw, roll = rotationMatrixToEulerAngles(R)
     R1 = eulerAnglesToRotationMatrix((0, rotation_y + pitch, 0))
     R = np.dot(R, R1)
+    R = R.astype(np.float32)
 
   l, w, h = dim[2], dim[1], dim[0]
   x_corners = [l/2, l/2, -l/2, -l/2, l/2, l/2, -l/2, -l/2,0]
@@ -144,7 +145,6 @@ def draw_box_3d(image, corners, c=(0, 0, 255)):
   for ind_f in range(3, -1, -1):
     f = face_idx[ind_f]
     for j in range(4):
-      print(j, (j+1)%4, (corners[f[j], 0], corners[f[j], 1]), (corners[f[(j+1)%4], 0], corners[f[(j+1)%4], 1]))
       cv2.line(image, (corners[f[j], 0], corners[f[j], 1]),
                (corners[f[(j+1)%4], 0], corners[f[(j+1)%4], 1]), c, 2, lineType=cv2.LINE_AA)
     if ind_f == 0:

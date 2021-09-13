@@ -87,7 +87,7 @@ class BaseDetector(object):
   def debug(self, debugger, images, dets, output, scale=1):
     raise NotImplementedError
 
-  def show_results(self, debugger, image, results, calib):
+  def show_results(self, debugger, image, results, calib, calib_r=None):
    raise NotImplementedError
 
   def read_clib(self,calib_path):
@@ -97,6 +97,14 @@ class BaseDetector(object):
         calib = np.array(line[:-1].split(' ')[1:], dtype=np.float32)
         calib = calib.reshape(3, 4)
         return calib
+
+  def read_clib_r(self,calib_path):
+    c = open(calib_path)
+    r_txt = c.readlines()[4].strip().split()[1:]
+    calib_R = np.array(r_txt, dtype=np.float32).reshape(3,3)
+    c.close()
+    return calib_R
+
   def run(self, image_or_path_or_tensor, meta=None):
     load_time, pre_time, net_time, dec_time, post_time = 0, 0, 0, 0, 0
     merge_time, tot_time = 0, 0
@@ -111,6 +119,7 @@ class BaseDetector(object):
       image = cv2.imread(image_or_path_or_tensor)
       calib_path=os.path.join(self.opt.calib_dir,image_or_path_or_tensor[-10:-3]+'txt')
       calib_numpy=self.read_clib(calib_path)
+      calib_r=self.read_clib_r(calib_path)
       calib=torch.from_numpy(calib_numpy).unsqueeze(0).to(self.opt.device)
     else:
       image = image_or_path_or_tensor['image'][0].numpy()
@@ -160,7 +169,7 @@ class BaseDetector(object):
     tot_time += end_time - start_time
 
     if self.opt.debug >= 1:
-      self.show_results(debugger, image, results, calib_numpy)
+      self.show_results(debugger, image, results, calib_numpy, calib_r)
     
     return {'results': results, 'tot': tot_time, 'load': load_time,
             'pre': pre_time, 'net': net_time, 'dec': dec_time,
