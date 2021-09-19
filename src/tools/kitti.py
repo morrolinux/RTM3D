@@ -175,8 +175,9 @@ for SPLIT in SPLITS:
                     ret['annotations'].append(ann)
                     print(image_id)
 
-            cv2.imshow('image', bbb_img)
-            cv2.waitKey(0)
+            # if int(image_id) % 10 is 0:
+            # cv2.imshow('image', bbb_img)
+            # cv2.waitKey(0)
         print("# images: ", len(ret['images']))
         print("# annotations: ", len(ret['annotations']))
         # import pdb; pdb.set_trace()
