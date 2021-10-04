@@ -60,7 +60,8 @@ for metric in train_stats[0].keys():
     plt.plot([x[0] for x in val_out], [x[1] for x in val_out])
 
     if args.out is not None:
-        title = metric + "({})".format(args.out[:-1])
+        name = args.out[max(0, args.out.rfind('/'))+1:]
+        title = metric + " ({})".format(name)
     else:
         title = metric
 
