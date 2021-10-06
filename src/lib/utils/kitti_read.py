@@ -203,6 +203,7 @@ def read_obj_data(LABEL_PATH, calib=None, im_shape=None):
             List of KittiObject : Contains all the labeled data
 
     '''
+    
     used_cls = ['Car', 'Van', 'Truck', 'Misc']
     used_cls = ['Pedestrian', 'Car', 'Cyclist']
     # used_cls = ['car', 'van', 'truck']

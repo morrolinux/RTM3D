@@ -9,6 +9,8 @@ from models.data_parallel import DataParallel
 from utils.utils import AverageMeter
 from models.utils import _transpose_and_gather_feat
 import numpy as np
+from utils.image import get_affine_transform
+
 def exp_rampup(rampup_length):
     """Exponential rampup from https://arxiv.org/abs/1610.02242"""
     def warpper(epoch):
@@ -135,6 +137,9 @@ class BaseTrainer(object):
         bar.next()
       
       if opt.debug > 0:
+        # trans_output_inv = get_affine_transform(batch['meta']['c'].detach().cpu().numpy(), batch['meta']['s'].detach().cpu().numpy(), 0, [self.opt.output_w, self.opt.output_h], inv=1)
+        # batch['meta']['trans_output_inv'] = torch.Tensor(trans_output_inv)
+        # batch['meta']['calib'] = batch['calib']
         self.debug(batch, output, iter_id)
       
       if opt.test:

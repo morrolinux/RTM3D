@@ -66,16 +66,15 @@ class CarPoseTrainer(BaseTrainer):
         loss = CarPoseLoss(opt)
         return loss_states, loss
 
-    def debug(self, batch, output, iter_id):
+    def debug(self, batch, output, iter_id, meta=None):
         opt = self.opt
         reg = output['reg'] if opt.reg_offset else None
         hm_hp = output['hm_hp'] if opt.hm_hp else None
         hp_offset = output['hp_offset'] if opt.reg_hp_offset else None
         dets = car_pose_decode(
-            output['hm'], output['wh'], output['hps'],output['dim'],
-            reg=reg, hm_hp=hm_hp, hp_offset=hp_offset, K=opt.K)
+            output['hm'], output['wh'], output['hps'],output['dim'], output['rot'],
+            reg=reg, hm_hp=hm_hp, hp_offset=hp_offset, K=opt.K, prob=output['prob'], meta=meta)
         dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[2])
-
         dets[:, :, :4] *= opt.input_res / opt.output_res
         dets[:, :, 5:39] *= opt.input_res / opt.output_res
         dets_gt = batch['meta']['gt_det'].numpy().reshape(1, -1, dets.shape[2])

@@ -99,6 +99,7 @@ class BaseDetector(object):
         return calib
 
   def read_clib_r(self,calib_path):
+    print("read_clib_r:", calib_path)
     c = open(calib_path)
     r_txt = c.readlines()[4].strip().split()[1:]
     calib_R = np.array(r_txt, dtype=np.float32).reshape(3,3)
@@ -153,7 +154,7 @@ class BaseDetector(object):
       dec_time += decode_time - forward_time
       
       if self.opt.debug >= 2:
-        self.debug(debugger, images, dets, output, scale)
+        self.debug(debugger, images, dets, output, scale, meta=meta)
       
       dets = self.post_process(dets, meta, scale)
       torch.cuda.synchronize()

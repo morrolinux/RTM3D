@@ -576,7 +576,14 @@ import numpy as np
 def gen_position(kps,dim,rot,meta,const):
     b=kps.size(0)
     c=kps.size(1)
-    opinv=meta['trans_output_inv']
+
+    try:
+        opinv=meta['trans_output_inv']
+    except Exception as e:
+        print(e)
+        print(meta)
+        opinv = meta['opinv']
+
     calib=meta['calib']
 
     opinv = opinv.unsqueeze(1)
@@ -689,7 +696,6 @@ def car_pose_decode(
     # hm_show=hm_show.detach().cpu().numpy().copy()
     # plt.imshow(hm_show, 'gray')
     # plt.show()
-
     heat = _nms(heat)
     scores, inds, clses, ys, xs = _topk(heat, K=K)
 

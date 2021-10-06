@@ -39,6 +39,13 @@ class CarPoseDataset(data.Dataset):
         img_id = self.images[index]
         file_name = self.coco.loadImgs(ids=[img_id])[0]['file_name']
         img_path = os.path.join(self.img_dir, file_name)
+
+        # TODO: refactor if this works
+        calib_path = os.path.join(self.calib_dir, file_name[:-4] + '.txt')
+        with open(calib_path, 'r') as calibfile:    
+            r_txt = calibfile.readlines()[4].strip().split()[1:]
+            calib_R = np.array(r_txt, dtype=np.float32).reshape(3,3)
+        
         ann_ids = self.coco.getAnnIds(imgIds=[img_id])
         anns = self.coco.loadAnns(ids=ann_ids)
         num_objs = min(len(anns), self.max_objs)
@@ -216,7 +223,7 @@ class CarPoseDataset(data.Dataset):
             inv_mask=inv_mask*0
         ret = {'input': inp, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh,
                'hps': kps, 'hps_mask': kps_mask,'dim': dim,'rotbin': rotbin, 'rotres': rotres,
-               'rot_mask': rot_mask,'dep':dep,'rotscalar':rot_scalar,'kps_cent':kps_cent,'calib':calib,
+               'rot_mask': rot_mask,'dep':dep,'rotscalar':rot_scalar,'kps_cent':kps_cent,'calib':calib, 'calib_r':calib_R,
                'opinv':trans_output_inv,'meta':meta,"label_sel":label_sel,'location':location,'ori':ori,'coor_kps_mask':coor_kps_mask,'inv_mask':inv_mask}
         if self.opt.reg_offset:
             ret.update({'reg': reg})

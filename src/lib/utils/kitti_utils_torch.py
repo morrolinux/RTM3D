@@ -101,7 +101,7 @@ def boxes3d_to_corners3d(boxes3d, rotate=True):
     return corners.astype(np.float32)
 
 
-def boxes3d_to_corners3d_torch(boxes3d, flip=False):
+def boxes3d_to_corners3d_torch(boxes3d, flip=False, R=None):
     """
     :param boxes3d: (N, 7) [x, y, z, h, w, l, ry]
     :return: corners_rotated: (N, 8, 3)
@@ -123,8 +123,11 @@ def boxes3d_to_corners3d_torch(boxes3d, flip=False):
     raw_1 = torch.cat([cosa, zeros, sina], dim=1)
     raw_2 = torch.cat([zeros, ones, zeros], dim=1)
     raw_3 = torch.cat([-sina, zeros, cosa], dim=1)
-    R = torch.cat((raw_1.unsqueeze(dim=1), raw_2.unsqueeze(dim=1), raw_3.unsqueeze(dim=1)), dim=1)  # (N, 3, 3)
-
+    if R is None:
+        R = torch.cat((raw_1.unsqueeze(dim=1), raw_2.unsqueeze(dim=1), raw_3.unsqueeze(dim=1)), dim=1)  # (N, 3, 3)
+    else:
+        R = torch.cuda.FloatTensor(R)
+        
     corners_rotated = torch.matmul(R, corners)  # (N, 3, 8)
     corners_rotated = corners_rotated + centers.unsqueeze(dim=2).expand(-1, -1, 8)
     corners_rotated = corners_rotated.permute(0, 2, 1)
@@ -210,6 +213,8 @@ def get_iou3d(corners3d, query_corners3d, need_bev=False):
     min_h_b = -B[:, 0:4, 1].sum(axis=1) / 4.0
     max_h_b = -B[:, 4:8, 1].sum(axis=1) / 4.0
 
+    epsilon = 0.0000000000000001 # small value to prevent division by zero
+
     for i in range(N):
         for j in range(M):
             max_of_min = np.max([min_h_a[i], min_h_b[j]])
@@ -227,7 +232,11 @@ def get_iou3d(corners3d, query_corners3d, need_bev=False):
             overlap3d = bottom_overlap * h_overlap
             union3d = bottom_a.area * (max_h_a[i] - min_h_a[i]) + bottom_b.area * (max_h_b[j] - min_h_b[j]) - overlap3d
             iou3d[i][j] = overlap3d / union3d
-            iou_bev[i][j] = bottom_overlap / (bottom_a.area + bottom_b.area - bottom_overlap)
+            try:
+                iou_bev[i][j] = bottom_overlap / (bottom_a.area + bottom_b.area - bottom_overlap)
+            except ZeroDivisionError as e:
+                print(e)
+                iou_bev[i][j] = epsilon
 
     if need_bev:
         return iou3d, iou_bev

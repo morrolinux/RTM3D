@@ -16,6 +16,10 @@ import iou3d_cuda
 from utils import kitti_utils_torch as kitti_utils
 import time
 import numpy as np
+
+import cv2
+from utils.ddd_utils import project_to_image, draw_box_3d, compute_box_3d, rotationMatrixToEulerAngles
+
 def boxes_iou_bev(boxes_a, boxes_b):
     """
     :param boxes_a: (M, 5)
@@ -440,6 +444,7 @@ class Position_loss(nn.Module):
         dim_mask_score_mask = 1 - (dim_mask_score_mask > 0)
         dim_mask_score_mask = dim_mask_score_mask.float()
 
+        # concatenates predicted location, dimension and orientation (rotation)
         box_pred = torch.cat((pinv, dim, rot_y), dim=2).detach()
         loss = (pinv - batch['location'])
         loss_norm = torch.norm(loss, p=2, dim=2)
@@ -452,16 +457,58 @@ class Position_loss(nn.Module):
         # dim_gt[:, :, 1] = torch.exp(dim_gt[:, :, 1]) * 1.53
         # dim_gt[:, :, 2] = torch.exp(dim_gt[:, :, 2]) * 3.88
         location_gt = batch['location']
-        ori_gt = batch['ori']
+        ori_gt = batch['ori'] 
         dim_gt[dim_mask] = 0
 
 
+        # DEBUG: Make sure loss is calculated the right way
+        image_path = '/home/morro/CARLA_DS_2_1k/training/image_2/' + batch['meta']['file_name'][0]
+        print(image_path)
+        image = cv2.imread(image_path)
+        calib_R = batch['calib_r'].cpu().numpy()[0]
+        bbb_img_pred = None
+        ccalib = batch['calib'].cpu().numpy().reshape(3,4)
+        for i in range(len(location_gt[0])):
+            # COMPUTE GROUND TRUTH BOX 3D
+            lgt = location_gt[0][i].detach().cpu()
+            dgt = dim_gt[0][i].detach().cpu()
+            ogt = ori_gt[0][i].cpu() 
+            try:
+                cgt_box = compute_box_3d(dgt, lgt, ogt, calib_R)
+                box_2d_as_point,vis_num,pts_center = project_to_image(cgt_box, ccalib, image.shape)
+                bbb_img_gt = draw_box_3d(image, box_2d_as_point[:, :2].astype(np.float32))
+                print("pts_center:", pts_center, "lgt:", lgt)
+            except Exception as e:
+                print("DBG ERR", e)
+                continue
+            # COMPUTE PREDICTED BOX 3D
+            pl = box_pred[0][i][:3].detach().cpu()
+            pd = box_pred[0][i][3:6].detach().cpu()
+            po = box_pred[0][i][6].detach().cpu()
+            p_box = compute_box_3d(pd, pl, po, calib_R)
+            box_2d_as_point,vis_num,pts_center = project_to_image(p_box, ccalib, image.shape)
+            bbb_img_pred = draw_box_3d(bbb_img_gt, box_2d_as_point[:, :2].astype(np.float32), c=(255, 0, 0))
+        if bbb_img_pred is not None:
+            cv2.imshow('GT vs Prediction', bbb_img_pred)
+            cv2.waitKey(0)
 
+
+        # concatenates location, dim, orientation ground truths
         gt_box = torch.cat((location_gt, dim_gt, ori_gt), dim=2)
         box_pred = box_pred.view(b * c, -1)
         gt_box = gt_box.view(b * c, -1)
 
+        # # original
         box_score = boxes_iou3d_gpu(box_pred, gt_box)
+        # print("box_score:", box_score)
+
+        # EXPERIMENT: Calculate R-Aware IoU
+        # corners1 = kitti_utils.boxes3d_to_corners3d_torch(box_pred, R=calib_R)
+        # corners2 = kitti_utils.boxes3d_to_corners3d_torch(gt_box, R=calib_R)
+        # box_score = kitti_utils.get_iou3d(corners1.cpu().numpy(), corners2.cpu().numpy())
+        # box_score = torch.cuda.FloatTensor(box_score)
+        # print("R-Aware box_score:", box_score)
+
         box_score = torch.diag(box_score).view(b, c)
         prob = prob.squeeze(2)
         box_score = box_score * loss_mask * dim_mask_score_mask
